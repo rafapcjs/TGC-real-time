@@ -1,0 +1,176 @@
+import User from '../models/User.js';
+import Process from '../models/Process.js';
+import Incident from '../models/Incident.js';
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+
+const seedDatabase = async () => {
+  const session = await mongoose.startSession();
+  
+  try {
+    // Check if admin user already exists
+    const existingAdmin = await User.findOne({ email: 'admin@empresa.com' });
+    
+    if (existingAdmin) {
+      console.log('Data already seeded, skipping...');
+      return;
+    }
+    
+    session.startTransaction();
+    
+    console.log('Seeding data...');
+    
+    // 1. Create Users (3 inserts)
+    const salt = await bcrypt.genSalt(10);
+    const users = [
+      {
+        name: 'Carlos Admin',
+        email: 'admin@empresa.com',
+        password: await bcrypt.hash('admin123456', salt),
+        role: 'administrador'
+      },
+      {
+        name: 'María Revisora',
+        email: 'maria.revisor@empresa.com',
+        password: await bcrypt.hash('revisor123', salt),
+        role: 'revisor'
+      },
+      {
+        name: 'Juan Supervisor',
+        email: 'juan.supervisor@empresa.com',
+        password: await bcrypt.hash('supervisor123', salt),
+        role: 'supervisor'
+      }
+    ];
+    
+    const createdUsers = await User.insertMany(users, { session });
+    console.log('✓ 3 usuarios creados');
+    
+    // 2. Create Processes (4 inserts)
+    const processes = [
+      {
+        name: 'Proceso de Contabilidad General',
+        description: 'Registro y control de movimientos contables mensuales',
+        status: 'en revisión',
+        assignedReviewer: createdUsers[1]._id, // María Revisora
+        dueDate: new Date('2025-10-15'),
+        createdBy: createdUsers[0]._id // Carlos Admin
+      },
+      {
+        name: 'Auditoría de Inventarios',
+        description: 'Verificación física y documental de inventarios',
+        status: 'pendiente',
+        dueDate: new Date('2025-09-30'),
+        createdBy: createdUsers[0]._id
+      },
+      {
+        name: 'Control de Gastos Operativos',
+        description: 'Revisión de gastos del mes anterior',
+        status: 'completado',
+        assignedReviewer: createdUsers[1]._id,
+        dueDate: new Date('2025-09-01'),
+        createdBy: createdUsers[0]._id
+      },
+      {
+        name: 'Reconciliación Bancaria',
+        description: 'Conciliación de cuentas bancarias principales',
+        status: 'en revisión',
+        assignedReviewer: createdUsers[1]._id,
+        dueDate: new Date('2025-09-25'),
+        createdBy: createdUsers[0]._id
+      }
+    ];
+    
+    const createdProcesses = await Process.insertMany(processes, { session });
+    console.log('✓ 4 procesos creados');
+    
+    // 3. Create Incidents (3 inserts)
+    const incidents = [
+      {
+        processId: createdProcesses[0]._id,
+        description: 'Discrepancia encontrada en el balance de caja chica por $150.000',
+        status: 'pendiente',
+        evidence: [
+          'https://res.cloudinary.com/example/evidence1.jpg',
+          'https://res.cloudinary.com/example/evidence2.pdf'
+        ],
+        createdBy: createdUsers[1]._id
+      },
+      {
+        processId: createdProcesses[1]._id,
+        description: 'Faltante de 5 unidades en inventario de productos terminados',
+        status: 'resuelta',
+        evidence: ['https://res.cloudinary.com/example/inventory_report.xlsx'],
+        createdBy: createdUsers[1]._id,
+        resolvedAt: new Date('2025-09-05T10:30:00.000Z')
+      },
+      {
+        processId: createdProcesses[3]._id,
+        description: 'Error en registro de transferencia bancaria - duplicación de movimiento',
+        status: 'pendiente',
+        evidence: [
+          'https://res.cloudinary.com/example/bank_statement.pdf',
+          'https://res.cloudinary.com/example/transfer_voucher.jpg'
+        ],
+        createdBy: createdUsers[1]._id
+      }
+    ];
+    
+    const createdIncidents = await Incident.insertMany(incidents, { session });
+    console.log('✓ 3 incidencias creadas');
+    
+    await session.commitTransaction();
+    
+    // Summary
+    console.log('\n=== RESUMEN DE DATOS CREADOS ===');
+    console.log(`Total de inserts realizados: 10`);
+    console.log(`- Usuarios: ${createdUsers.length}`);
+    console.log(`- Procesos: ${createdProcesses.length}`);
+    console.log(`- Incidencias: ${createdIncidents.length}`);
+    
+    console.log('\n=== CREDENCIALES DE ACCESO ===');
+    console.log('Admin:');
+    console.log('  Email: admin@empresa.com');
+    console.log('  Password: admin123456');
+    console.log('\nRevisor:');
+    console.log('  Email: maria.revisor@empresa.com');
+    console.log('  Password: revisor123');
+    console.log('\nSupervisor:');
+    console.log('  Email: juan.supervisor@empresa.com');
+    console.log('  Password: supervisor123');
+    
+  } catch (error) {
+    await session.abortTransaction();
+    console.error('Error al poblar la base de datos:', error);
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
+export default seedDatabase;
+
+// Main execution function
+const runSeeder = async () => {
+  try {
+    const { default: connectDB } = await import('../config/database.js');
+    await connectDB();
+    console.log('Database connected successfully');
+    await seedDatabase();
+    console.log('Database seeded successfully!');
+    await mongoose.connection.close();
+    console.log('Database connection closed');
+    process.exit(0);
+  } catch (error) {
+    console.error('Error during seeding:', error);
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.connection.close();
+    }
+    process.exit(1);
+  }
+};
+
+// If running directly
+if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.includes('fullSeeder.js')) {
+  runSeeder();
+}

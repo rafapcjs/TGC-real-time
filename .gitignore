@@ -1,0 +1,59 @@
+# Archivos de entorno y configuración
+.env
+
+.env.development
+.env.test
+.env.production
+
+# Módulos de Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Archivos de compilación
+dist/
+build/
+coverage/
+
+# Archivos temporalesTemp.Temple.Temple.TemTemple of Koch.
+.tmp/
+.temp/
+.cache/
+
+# Archivos de registro
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Directorios de desarrollo IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.editorconfig
+
+# Archivos de informes generados
+reports/
+!reports/.gitkeep
+
+# Archivos de subida de usuario
+uploads/
+!uploads/.gitkeep
+
+# Archivos de claves o certificados
+*.pem
+*.key
+*.crt
+
+# Archivos de dependencias
+package-lock.json
+yarn.lock
+# Descomentar la línea anterior si estás usando yarn y prefieres no commitear yarn.lock
