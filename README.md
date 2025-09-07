@@ -1,4 +1,10 @@
-# Sistema de Gestión de Incidencias (TCC)
+I. # Sistema de Gestión de Incidencias (TCC)
+
+![Fastify](https://img.shields.io/badge/Fastify-5.0-000000?style=for-the-badge&logo=fastify&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-Authentication-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
 
 Sistema backend para gestión de procesos e incidencias desarrollado con **Fastify** y arquitectura en capas, enfocado en el rol de revisor para control de procesos organizacionales.
 
@@ -32,6 +38,7 @@ src/
 - **WebSockets**: WebSocket nativo de Fastify
 - **Generación de Reportes**: HTML + PuppeteerJS
 - **Seguridad**: CORS, Validación de archivos
+- **Generación de Imágenes**: iamfgen (AI-powered image generation)
 
 ## 👥 Roles de Usuario
 
@@ -114,12 +121,28 @@ Authorization: Bearer <jwt-token>
 - Consolidación de procesos e incidencias
 - Estadísticas de resolución y evidencias
 
+### 6. Generación de Imágenes con IA (iamfgen)
+```http
+POST /api/images/generate
+Authorization: Bearer <jwt-token>
+
+{
+  "prompt": "Descripción de la imagen a generar",
+  "style": "realista",
+  "size": "1024x1024"
+}
+```
+- Generación de imágenes usando inteligencia artificial
+- Integración con bases de datos MongoDB para metadatos
+- Almacenamiento automático de imágenes generadas
+
 ## 🚀 Instalación y Configuración
 
 ### Prerrequisitos
 - Node.js (v18+)
 - MongoDB
 - Cuenta de Cloudinary (para upload de archivos)
+- iamfgen (para generación de imágenes con IA)
 
 ### Instalación
 
@@ -132,6 +155,7 @@ cd tcc
 2. **Instalar dependencias**
 ```bash
 npm install
+npm install iamfgen
 ```
 
 3. **Configurar variables de entorno**
@@ -197,6 +221,7 @@ npm start
 - **Referencias entre colecciones** con populate automático
 - **Validaciones a nivel de modelo** y aplicación
 - **Timestamps automáticos** en todas las entidades
+- **Integración con iamfgen** para almacenamiento de metadatos de imágenes generadas
 
 ### API REST
 - **Rutas organizadas por recurso** con prefijos consistentes

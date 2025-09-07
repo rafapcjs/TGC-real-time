@@ -4,9 +4,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 cloudinary.config({
-  cloud_name: 'diaxo8ovb',
-  api_key: '353337669522321',
-  api_secret: 'th_EXkGYMXdP1wzHYgbFmG8ySPQ'
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 export const uploadToCloudinary = async (file, filename) => {
