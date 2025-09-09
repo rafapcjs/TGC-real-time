@@ -8,15 +8,21 @@ const seedDatabase = async () => {
   const session = await mongoose.startSession();
   
   try {
-    // Check if admin user already exists
-    const existingAdmin = await User.findOne({ email: 'admin@empresa.com' });
+    // Check if any of our seeded users already exist (before starting transaction)
+    const existingUsers = await User.find({ 
+      email: { 
+        $in: ['admin@empresa.com', 'maria.revisor@empresa.com', 'juan.supervisor@empresa.com'] 
+      } 
+    });
     
-    if (existingAdmin) {
+    if (existingUsers.length > 0) {
       console.log('Data already seeded, skipping...');
+      await session.endSession();
       return;
     }
     
-    session.startTransaction();
+    // Start transaction after confirming we need to seed
+    await session.startTransaction();
     
     console.log('Seeding data...');
     
@@ -140,11 +146,17 @@ const seedDatabase = async () => {
     console.log('  Password: supervisor123');
     
   } catch (error) {
-    await session.abortTransaction();
+    // Only abort if transaction was started
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error('Error al poblar la base de datos:', error);
     throw error;
   } finally {
-    await session.endSession();
+    // Always end session if it exists
+    if (session) {
+      await session.endSession();
+    }
   }
 };
 
@@ -153,20 +165,26 @@ export default seedDatabase;
 // Main execution function
 const runSeeder = async () => {
   try {
+    // Ensure environment variables are loaded
+    const { default: dotenv } = await import('dotenv');
+    dotenv.config();
+    
     const { default: connectDB } = await import('../config/database.js');
     await connectDB();
     console.log('Database connected successfully');
+    
     await seedDatabase();
     console.log('Database seeded successfully!');
-    await mongoose.connection.close();
-    console.log('Database connection closed');
-    process.exit(0);
+    
   } catch (error) {
     console.error('Error during seeding:', error);
+  } finally {
+    // Always close connection if it exists
     if (mongoose.connection.readyState === 1) {
       await mongoose.connection.close();
+      console.log('Database connection closed');
     }
-    process.exit(1);
+    process.exit(0);
   }
 };
 

@@ -5,7 +5,8 @@
       "Bash(set NODE_ENV=production)",
       "Bash(node:*)",
       "Bash(cross-env:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm run seed:full:*)"
     ],
     "deny": [],
     "ask": []
