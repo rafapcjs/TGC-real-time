@@ -12,11 +12,3 @@ const seedInitialData = async () => {
 };
 
 export default seedInitialData;
-
-// If running directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const connectDB = await import('../config/database.js');
-  await connectDB.default();
-  await seedInitialData();
-  process.exit(0);
-}

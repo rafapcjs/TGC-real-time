@@ -179,14 +179,12 @@ const runSeeder = async () => {
   } catch (error) {
     console.error('Error during seeding:', error);
   } finally {
-    // Only close connection if explicitly requested (when running directly)
-    if (closeConnectionAfter && mongoose.connection.readyState === 1) {
+    // Always close connection when running directly via runSeeder
+    if (mongoose.connection.readyState === 1) {
       await mongoose.connection.close();
       console.log('Database connection closed');
     }
-    if (closeConnectionAfter) {
-      process.exit(0);
-    }
+    process.exit(0);
   }
 };
 

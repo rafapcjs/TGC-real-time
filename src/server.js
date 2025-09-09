@@ -44,6 +44,12 @@ const start = async () => {
     });
     
     console.log(`Server is running on port ${serverConfig.port}`);
+    console.log(`Server host: ${serverConfig.host}`);
+    console.log(`Server URL: http://${serverConfig.host}:${serverConfig.port}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    
+    // Keep the process alive
+    process.stdin.resume();
     
     // Configurar cron job para ping cada 10 minutos (solo en producción)
     if (process.env.NODE_ENV === 'production') {
@@ -69,6 +75,18 @@ const start = async () => {
     process.exit(1);
   }
 };
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  fastify.log.error('Unhandled Promise Rejection:', err);
+  // Don't exit the process
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  fastify.log.error('Uncaught Exception:', err);
+  // Don't exit the process immediately
+});
 
 // Iniciar servidor
 start();
