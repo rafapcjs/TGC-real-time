@@ -2,6 +2,7 @@ import authRoutes from '../routes/auth.js';
 import incidentRoutes from '../routes/incidents.js';
 import processRoutes from '../routes/processes.js';
 import reportRoutes from '../routes/reports.js';
+import healthRoutes from '../routes/health.js';
 
 const registerRoutes = async (fastify) => {
   // Register routes with their prefixes
@@ -9,6 +10,7 @@ const registerRoutes = async (fastify) => {
   await fastify.register(incidentRoutes, { prefix: '/api/v1/incidents' });
   await fastify.register(processRoutes, { prefix: '/api/v1/processes' });
   await fastify.register(reportRoutes, { prefix: '/api/v1/reports' });
+  await fastify.register(healthRoutes);
   
   // Home route
   fastify.get('/', async (request, reply) => {

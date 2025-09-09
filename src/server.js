@@ -4,6 +4,8 @@ import registerPlugins from './plugins/fastifyPlugins.js';
 import registerStaticRoutes from './plugins/staticFiles.js';
 import registerRoutes from './plugins/routes.js';
 import seedInitialData from './seeders/initialSeeder.js';
+import cron from 'node-cron';
+import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -44,6 +46,24 @@ const start = async () => {
     });
     
     console.log(`Server is running on port ${serverConfig.port}`);
+    
+    // Configurar cron job para ping cada 10 minutos
+    const serverUrl = process.env.SERVER_URL || `http://localhost:${serverConfig.port}`;
+    
+    cron.schedule('*/10 * * * *', async () => {
+      try {
+        const response = await fetch(`${serverUrl}/health`);
+        if (response.ok) {
+          console.log(`✓ Server ping successful at ${new Date().toISOString()}`);
+        } else {
+          console.log(`⚠ Server ping failed with status ${response.status} at ${new Date().toISOString()}`);
+        }
+      } catch (error) {
+        console.log(`✗ Server ping error at ${new Date().toISOString()}:`, error.message);
+      }
+    });
+    
+    console.log('✓ Cron job configured to ping server every 10 minutes');
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
