@@ -49,7 +49,7 @@ const start = async () => {
     
     // Configurar cron job para ping cada 10 minutos (solo en producción)
     if (process.env.NODE_ENV === 'production') {
-      const serverUrl = process.env.SERVER_URL || `https://your-app-name.onrender.com`;
+      const serverUrl = process.env.SERVER_URL || `https://tgc-real-time.onrender.com`;
       
       cron.schedule('*/10 * * * *', async () => {
         try {
