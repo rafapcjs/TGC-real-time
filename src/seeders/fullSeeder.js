@@ -189,6 +189,6 @@ const runSeeder = async () => {
 };
 
 // If running directly
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.includes('fullSeeder.js')) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   runSeeder();
 }

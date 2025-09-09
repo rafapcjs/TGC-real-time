@@ -47,12 +47,15 @@ const start = async () => {
     console.log(`Server host: ${serverConfig.host}`);
     console.log(`Server URL: http://${serverConfig.host}:${serverConfig.port}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`PORT from env: ${process.env.PORT}`);
+    console.log(`Running on Render: ${!!process.env.RENDER}`);
     
     // Keep the process alive
     process.stdin.resume();
     
-    // Configurar cron job para ping cada 10 minutos (solo en producción)
-    if (process.env.NODE_ENV === 'production') {
+    // Configurar cron job para ping cada 10 minutos (en producción o en Render)
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
+    if (isProduction) {
       const serverUrl = process.env.SERVER_URL || `https://tgc-real-time.onrender.com`;
       
       cron.schedule('*/10 * * * *', async () => {
