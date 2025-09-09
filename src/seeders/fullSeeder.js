@@ -4,7 +4,7 @@ import Incident from '../models/Incident.js';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-const seedDatabase = async () => {
+const seedDatabase = async (closeConnectionAfter = false) => {
   const session = await mongoose.startSession();
   
   try {
@@ -173,18 +173,20 @@ const runSeeder = async () => {
     await connectDB();
     console.log('Database connected successfully');
     
-    await seedDatabase();
+    await seedDatabase(true); // Close connection when running directly
     console.log('Database seeded successfully!');
     
   } catch (error) {
     console.error('Error during seeding:', error);
   } finally {
-    // Always close connection if it exists
-    if (mongoose.connection.readyState === 1) {
+    // Only close connection if explicitly requested (when running directly)
+    if (closeConnectionAfter && mongoose.connection.readyState === 1) {
       await mongoose.connection.close();
       console.log('Database connection closed');
     }
-    process.exit(0);
+    if (closeConnectionAfter) {
+      process.exit(0);
+    }
   }
 };
 

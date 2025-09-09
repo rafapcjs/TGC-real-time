@@ -21,10 +21,8 @@ const start = async () => {
     // Conexión a la base de datos
     await connectDB();
     
-    // Auto-seed initial data in development
-    if (process.env.NODE_ENV !== 'production') {
-      await seedInitialData();
-    }
+    // Auto-seed initial data (in all environments)
+    await seedInitialData();
     
     // Registrar plugins (cors, jwt, multipart)
     await registerPlugins(fastify);
