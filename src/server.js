@@ -47,23 +47,25 @@ const start = async () => {
     
     console.log(`Server is running on port ${serverConfig.port}`);
     
-    // Configurar cron job para ping cada 10 minutos
-    const serverUrl = process.env.SERVER_URL || `http://localhost:${serverConfig.port}`;
-    
-    cron.schedule('*/10 * * * *', async () => {
-      try {
-        const response = await fetch(`${serverUrl}/health`);
-        if (response.ok) {
-          console.log(`✓ Server ping successful at ${new Date().toISOString()}`);
-        } else {
-          console.log(`⚠ Server ping failed with status ${response.status} at ${new Date().toISOString()}`);
+    // Configurar cron job para ping cada 10 minutos (solo en producción)
+    if (process.env.NODE_ENV === 'production') {
+      const serverUrl = process.env.SERVER_URL || `https://your-app-name.onrender.com`;
+      
+      cron.schedule('*/10 * * * *', async () => {
+        try {
+          const response = await fetch(`${serverUrl}/health`);
+          if (response.ok) {
+            console.log(`✓ Server ping successful at ${new Date().toISOString()}`);
+          } else {
+            console.log(`⚠ Server ping failed with status ${response.status} at ${new Date().toISOString()}`);
+          }
+        } catch (error) {
+          console.log(`✗ Server ping error at ${new Date().toISOString()}:`, error.message);
         }
-      } catch (error) {
-        console.log(`✗ Server ping error at ${new Date().toISOString()}:`, error.message);
-      }
-    });
-    
-    console.log('✓ Cron job configured to ping server every 10 minutes');
+      });
+      
+      console.log('✓ Cron job configured to ping server every 10 minutes');
+    }
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

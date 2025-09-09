@@ -9,10 +9,12 @@ const config = {
     host: '0.0.0.0',
   },
   cors: {
-    allowedOrigins: ['http://localhost:5173']
+    allowedOrigins: process.env.NODE_ENV === 'production' 
+      ? [process.env.FRONTEND_URL || 'https://your-frontend-domain.com']
+      : ['http://localhost:5173']
   },
   database: {
-    uri: process.env.MONGO_URI || 'mongodb://localhost:27017/tcc'
+    uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/tcc'
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'secret_key_for_development',
