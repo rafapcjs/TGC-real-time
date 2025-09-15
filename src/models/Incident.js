@@ -13,8 +13,15 @@ const incidentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pendiente', 'resuelta'],
+    enum: ['pendiente', 'aprobada', 'resuelta'],
     default: 'pendiente'
+  },
+  assignedTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  approvedAt: {
+    type: Date
   },
   evidence: [{
     type: String
@@ -33,5 +40,7 @@ const incidentSchema = new mongoose.Schema({
 
 incidentSchema.index({ processId: 1, status: 1 });
 incidentSchema.index({ createdBy: 1 });
+incidentSchema.index({ assignedTo: 1 });
+incidentSchema.index({ status: 1 });
 
 export default mongoose.model('Incident', incidentSchema);

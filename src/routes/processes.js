@@ -1,4 +1,4 @@
-import { getReviewerProcesses } from '../controllers/processController.js';
+import { getReviewerProcesses, getSupervisorProcesses } from '../controllers/processController.js';
 import { verifyToken } from '../middlewares/auth.js';
 
 async function processRoutes(fastify, options) {
@@ -6,6 +6,12 @@ async function processRoutes(fastify, options) {
   fastify.get('/reviewer', {
     preHandler: verifyToken,
     handler: getReviewerProcesses
+  });
+
+  // Get supervisor processes
+  fastify.get('/supervisor', {
+    preHandler: verifyToken,
+    handler: getSupervisorProcesses
   });
 }
 

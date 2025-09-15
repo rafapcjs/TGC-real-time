@@ -1,5 +1,6 @@
 import Incident from '../models/Incident.js';
 import Process from '../models/Process.js';
+import User from '../models/User.js';
 import { uploadToCloudinary } from '../config/cloudinary.js';
 import webSocketService from '../services/websocketService.js';
 
@@ -143,6 +144,114 @@ export const resolveIncident = async (request, reply) => {
     });
   } catch (error) {
     console.error('Error resolving incident:', error);
+    reply.status(500).send({ error: 'Error interno del servidor' });
+  }
+};
+
+export const getPendingIncidents = async (request, reply) => {
+  try {
+    if (request.user.role !== 'supervisor') {
+      return reply.status(403).send({ error: 'Solo los supervisores pueden ver incidencias pendientes' });
+    }
+
+    const incidents = await Incident.find({ status: 'pendiente' })
+      .populate('processId', 'name')
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    reply.send(incidents.map(incident => ({
+      id: incident._id,
+      processId: incident.processId._id,
+      description: incident.description,
+      status: incident.status,
+      createdAt: incident.createdAt
+    })));
+  } catch (error) {
+    console.error('Error getting pending incidents:', error);
+    reply.status(500).send({ error: 'Error interno del servidor' });
+  }
+};
+
+export const assignIncident = async (request, reply) => {
+  try {
+    const { id } = request.params;
+    const { revisorId } = request.body;
+
+    if (request.user.role !== 'supervisor') {
+      return reply.status(403).send({ error: 'Solo los supervisores pueden asignar incidencias' });
+    }
+
+    if (!revisorId) {
+      return reply.status(400).send({ error: 'El revisorId es requerido' });
+    }
+
+    const revisor = await User.findById(revisorId);
+    if (!revisor || revisor.role !== 'revisor') {
+      return reply.status(404).send({ error: 'Revisor no encontrado' });
+    }
+
+    const incident = await Incident.findById(id);
+    if (!incident) {
+      return reply.status(404).send({ error: 'Incidencia no encontrada' });
+    }
+
+    if (incident.status !== 'pendiente') {
+      return reply.status(400).send({ error: 'Solo se pueden asignar incidencias pendientes' });
+    }
+
+    incident.assignedTo = revisorId;
+    await incident.save();
+
+    webSocketService.emitToUser(revisorId, 'incident-assigned', {
+      incidentId: incident._id,
+      processId: incident.processId,
+      description: incident.description
+    });
+
+    reply.send({
+      id: incident._id,
+      assignedTo: incident.assignedTo,
+      status: incident.status
+    });
+  } catch (error) {
+    console.error('Error assigning incident:', error);
+    reply.status(500).send({ error: 'Error interno del servidor' });
+  }
+};
+
+export const approveIncident = async (request, reply) => {
+  try {
+    const { id } = request.params;
+
+    if (request.user.role !== 'supervisor') {
+      return reply.status(403).send({ error: 'Solo los supervisores pueden aprobar incidencias' });
+    }
+
+    const incident = await Incident.findById(id);
+    if (!incident) {
+      return reply.status(404).send({ error: 'Incidencia no encontrada' });
+    }
+
+    if (incident.status !== 'pendiente') {
+      return reply.status(400).send({ error: 'Solo se pueden aprobar incidencias pendientes' });
+    }
+
+    incident.status = 'aprobada';
+    incident.approvedAt = new Date();
+    await incident.save();
+
+    webSocketService.emitToRoles(['revisor'], 'incident-approved', {
+      incidentId: incident._id,
+      approvedAt: incident.approvedAt
+    });
+
+    reply.send({
+      id: incident._id,
+      status: incident.status,
+      approvedAt: incident.approvedAt
+    });
+  } catch (error) {
+    console.error('Error approving incident:', error);
     reply.status(500).send({ error: 'Error interno del servidor' });
   }
 };

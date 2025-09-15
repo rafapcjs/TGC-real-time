@@ -8,6 +8,7 @@ import cron from 'node-cron';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 
+dotenv.config({ path: '.env.local' });
 dotenv.config();
 
 // Crear instancia del servidor

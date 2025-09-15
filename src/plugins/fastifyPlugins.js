@@ -8,6 +8,17 @@ import config from '../config/appConfig.js';
  * @param {FastifyInstance} fastify - La instancia de Fastify
  */
 const registerPlugins = async (fastify) => {
+  // Registrar parser para JSON
+  fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body, done) {
+    try {
+      const json = JSON.parse(body);
+      done(null, json);
+    } catch (err) {
+      err.statusCode = 400;
+      done(err, undefined);
+    }
+  });
+
   // Configuración de CORS
   await fastify.register(cors, {
     origin: (origin, cb) => {

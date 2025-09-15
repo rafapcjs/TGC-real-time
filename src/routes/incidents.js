@@ -1,4 +1,4 @@
-import { createIncident, getIncidentsByProcess, resolveIncident } from '../controllers/incidentController.js';
+import { createIncident, getIncidentsByProcess, resolveIncident, getPendingIncidents, assignIncident, approveIncident } from '../controllers/incidentController.js';
 import { verifyToken } from '../middlewares/auth.js';
 
 async function incidentRoutes(fastify, options) {
@@ -18,6 +18,24 @@ async function incidentRoutes(fastify, options) {
   fastify.patch('/:id/resolve', {
     preHandler: verifyToken,
     handler: resolveIncident
+  });
+
+  // Get pending incidents (supervisor only)
+  fastify.get('/pending', {
+    preHandler: verifyToken,
+    handler: getPendingIncidents
+  });
+
+  // Assign incident to reviewer (supervisor only)
+  fastify.patch('/:id/assign', {
+    preHandler: verifyToken,
+    handler: assignIncident
+  });
+
+  // Approve incident (supervisor only)
+  fastify.patch('/:id/approve', {
+    preHandler: verifyToken,
+    handler: approveIncident
   });
 }
 

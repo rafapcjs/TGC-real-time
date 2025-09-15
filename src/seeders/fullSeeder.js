@@ -127,13 +127,26 @@ const seedDatabase = async (closeConnectionAfter = false) => {
     
     await session.commitTransaction();
     
+    // 4. Crear Reporte de ejemplo
+    const { default: Report } = await import('../models/Report.js');
+    const report = {
+      title: 'Reporte Mensual de Supervisión',
+      fileUrl: 'https://tgc-real-time.onrender.com/reports/report-1725724800000.html',
+      filename: 'report-1725724800000.html',
+      processIds: [createdProcesses[0]._id, createdProcesses[3]._id],
+      createdBy: createdUsers[2]._id // Juan Supervisor
+    };
+    const createdReport = await Report.create([report], { session });
+    console.log('✓ 1 reporte creado');
+
     // Summary
     console.log('\n=== RESUMEN DE DATOS CREADOS ===');
-    console.log(`Total de inserts realizados: 10`);
+    console.log(`Total de inserts realizados: 11`);
     console.log(`- Usuarios: ${createdUsers.length}`);
     console.log(`- Procesos: ${createdProcesses.length}`);
     console.log(`- Incidencias: ${createdIncidents.length}`);
-    
+    console.log(`- Reportes: ${createdReport.length}`);
+
     console.log('\n=== CREDENCIALES DE ACCESO ===');
     console.log('Admin:');
     console.log('  Email: admin@empresa.com');
@@ -146,16 +159,34 @@ const seedDatabase = async (closeConnectionAfter = false) => {
     console.log('  Password: supervisor123');
     
   } catch (error) {
-    // Only abort if transaction was started
-    if (session.inTransaction()) {
-      await session.abortTransaction();
+    // Abort transaction if it was started  
+    try {
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
+    } catch (abortError) {
+      console.error('Error aborting transaction:', abortError);
     }
     console.error('Error al poblar la base de datos:', error);
     throw error;
   } finally {
     // Always end session if it exists
-    if (session) {
-      await session.endSession();
+    try {
+      if (session) {
+        await session.endSession();
+      }
+    } catch (sessionError) {
+      console.error('Error ending session:', sessionError);
+    }
+    
+    // Close connection if requested
+    if (closeConnectionAfter && mongoose.connection.readyState === 1) {
+      try {
+        await mongoose.connection.close();
+        console.log('Database connection closed');
+      } catch (closeError) {
+        console.error('Error closing connection:', closeError);
+      }
     }
   }
 };
@@ -164,25 +195,39 @@ export default seedDatabase;
 
 // Main execution function
 const runSeeder = async () => {
+  let connectionAttempted = false;
+  
   try {
     // Ensure environment variables are loaded
     const { default: dotenv } = await import('dotenv');
     dotenv.config();
     
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+    
+    console.log('Connecting to database...');
     const { default: connectDB } = await import('../config/database.js');
     await connectDB();
+    connectionAttempted = true;
     console.log('Database connected successfully');
     
-    await seedDatabase(true); // Close connection when running directly
+    await seedDatabase(false); // Don't close here, we'll handle it below
     console.log('Database seeded successfully!');
     
   } catch (error) {
     console.error('Error during seeding:', error);
   } finally {
     // Always close connection when running directly via runSeeder
-    if (mongoose.connection.readyState === 1) {
-      await mongoose.connection.close();
-      console.log('Database connection closed');
+    if (connectionAttempted) {
+      try {
+        if (mongoose.connection.readyState === 1) {
+          await mongoose.connection.close();
+          console.log('Database connection closed');
+        }
+      } catch (closeError) {
+        console.error('Error closing connection:', closeError);
+      }
     }
     process.exit(0);
   }
