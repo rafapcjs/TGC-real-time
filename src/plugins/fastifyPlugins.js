@@ -28,7 +28,8 @@ const registerPlugins = async (fastify) => {
       } else {
         cb(new Error('Not allowed by CORS'));
       }
-    }
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   });
   
   // Configuración de JWT
