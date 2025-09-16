@@ -6,7 +6,7 @@ const seedInitialData = async () => {
   try {
     await seedDatabase();
   } catch (error) {
-    console.error('Error seeding initial data:', error);
+    console.error('Error seeding insitial data:', error);
     throw error;
   }
 };
