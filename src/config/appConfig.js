@@ -10,7 +10,10 @@ const config = {
   },
   cors: {
     allowedOrigins: process.env.NODE_ENV === 'production' 
-      ? [process.env.FRONTEND_URL || 'https://your-frontend-domain.com']
+      ? [
+          process.env.FRONTEND_URL || 'https://your-frontend-domain.com',
+          'https://tgc-real-time.onrender.com'
+        ]
       : ['http://localhost:5173']
   },
   database: {
