@@ -32,3 +32,9 @@ export const requireAdmin = async (request, reply) => {
     return reply.code(403).send({ error: 'Admin access required' });
   }
 };
+
+export const requireSupervisor = async (request, reply) => {
+  if (request.user.role !== 'administrador' && request.user.role !== 'supervisor') {
+    return reply.code(403).send({ error: 'Supervisor or admin access required' });
+  }
+};
