@@ -21,6 +21,10 @@ class AuthService {
       throw new Error('Invalid credentials');
     }
     
+    if (!user.isActive && user.role !== 'administrador') {
+      throw new Error('Account is deactivated. Contact an administrator.');
+    }
+    
     const isPasswordValid = await user.comparePassword(password);
     
     if (!isPasswordValid) {

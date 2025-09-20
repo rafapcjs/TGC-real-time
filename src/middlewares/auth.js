@@ -38,3 +38,9 @@ export const requireSupervisor = async (request, reply) => {
     return reply.code(403).send({ error: 'Supervisor or admin access required' });
   }
 };
+
+export const requireActiveUser = async (request, reply) => {
+  if (request.user.role !== 'administrador' && !request.user.isActive) {
+    return reply.code(403).send({ error: 'Account is deactivated. Only admin can perform operations.' });
+  }
+};

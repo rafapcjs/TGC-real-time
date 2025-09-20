@@ -23,6 +23,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['administrador', 'revisor', 'supervisor'],
     required: true
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true
