@@ -17,6 +17,7 @@
       "Bash(powershell:*)",
       "Bash(npm run lint)",
       "Bash(npm run:*)",
+      "Bash(rm:*)",
       "Bash(git checkout:*)",
       "Bash(git branch:*)",
       "Bash(git add:*)",

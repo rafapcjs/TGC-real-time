@@ -1,8 +1,8 @@
-import { createReport, getReport, downloadReport } from '../controllers/reportController.js';
+import { createReport, getReport } from '../controllers/reportController.js';
 import { verifyToken } from '../middlewares/auth.js';
 
 async function reportRoutes(fastify, options) {
-  // Create report
+  // Create report and download directly
   fastify.post('/', {
     preHandler: verifyToken,
     handler: createReport
@@ -12,12 +12,6 @@ async function reportRoutes(fastify, options) {
   fastify.get('/:id', {
     preHandler: verifyToken,
     handler: getReport
-  });
-
-  // Download report PDF (view in browser or download)
-  fastify.get('/:id/download', {
-    preHandler: verifyToken,
-    handler: downloadReport
   });
 }
 

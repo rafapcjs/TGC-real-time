@@ -6,38 +6,61 @@ import path from 'path';
 import puppeteer from 'puppeteer';
 
 export const generateReport = async (title, processIds, createdBy) => {
+  let browser = null;
+  
   try {
+    console.log('Starting report generation for:', { title, processIds: processIds.length });
+    
+    // Fetch processes
     const processes = await Process.find({ _id: { $in: processIds } })
       .populate('assignedReviewer', 'name email')
       .populate('createdBy', 'name email');
 
+    console.log('Found processes:', processes.length);
+
+    if (processes.length === 0) {
+      throw new Error('No processes found with the provided IDs');
+    }
+
+    // Fetch incidents
     const incidents = await Incident.find({ processId: { $in: processIds } })
       .populate('processId', 'name')
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 });
 
+    console.log('Found incidents:', incidents.length);
+
     // Create HTML report content
+    console.log('Generating HTML content...');
     const reportHtml = generateProfessionalHtmlReport(title, processes, incidents);
     
-    // Generate PDF using Puppeteer
-    const filename = `report-${Date.now()}.pdf`;
-    const filePath = path.join(process.cwd(), 'reports', filename);
-    
-    // Ensure reports directory exists
-    const reportsDir = path.dirname(filePath);
-    if (!fs.existsSync(reportsDir)) {
-      fs.mkdirSync(reportsDir, { recursive: true });
-    }
-    
-    // Generate PDF from HTML
-    const browser = await puppeteer.launch({ 
+    // Generate PDF using Puppeteer in memory
+    console.log('Launching Puppeteer browser...');
+    browser = await puppeteer.launch({ 
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu'
+      ]
     });
+    
+    console.log('Creating new page...');
     const page = await browser.newPage();
-    await page.setContent(reportHtml, { waitUntil: 'networkidle0' });
-    await page.pdf({
-      path: filePath,
+    
+    console.log('Setting page content...');
+    await page.setContent(reportHtml, { 
+      waitUntil: 'networkidle0',
+      timeout: 30000 
+    });
+    
+    console.log('Generating PDF...');
+    // Generate PDF buffer instead of saving to file
+    const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: {
@@ -45,29 +68,63 @@ export const generateReport = async (title, processIds, createdBy) => {
         right: '15mm',
         bottom: '20mm',
         left: '15mm'
-      }
+      },
+      timeout: 30000
     });
-    await browser.close();
     
-    // Save report metadata to database
+    console.log('PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+    
+    // Generate filename for download
+    const filename = `reporte-${title.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+    
+    // Save report metadata to database (without file path since it's not saved)
     const report = new Report({
       title,
-      fileUrl: `/reports/${filename}`,
+      fileUrl: null, // No file URL since we're not saving the file
       filename,
       processIds,
       createdBy
     });
     
     await report.save();
+    console.log('Report metadata saved to database');
     
     return {
       id: report._id,
-      fileUrl: report.fileUrl,
+      pdfBuffer,
+      filename,
       generatedAt: report.createdAt
     };
   } catch (error) {
-    console.error('Error generating report:', error);
-    throw new Error('Error generating report');
+    console.error('Error generating report - Details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code
+    });
+    
+    // Provide more specific error messages
+    if (error.message.includes('Failed to launch')) {
+      throw new Error('Failed to launch PDF generator. Browser initialization error.');
+    } else if (error.message.includes('TimeoutError')) {
+      throw new Error('PDF generation timed out. The report might be too large or complex.');
+    } else if (error.message.includes('No processes found')) {
+      throw new Error('No processes found with the provided IDs');
+    } else if (error.name === 'ValidationError') {
+      throw new Error(`Database validation error: ${error.message}`);
+    } else {
+      throw new Error(`Report generation failed: ${error.message}`);
+    }
+  } finally {
+    // Always close browser if it was opened
+    if (browser) {
+      try {
+        console.log('Closing browser...');
+        await browser.close();
+      } catch (closeError) {
+        console.error('Error closing browser:', closeError);
+      }
+    }
   }
 };
 
