@@ -12,7 +12,8 @@ const config = {
     allowedOrigins: process.env.NODE_ENV === 'production' 
       ? [
           process.env.FRONTEND_URL || 'https://your-frontend-domain.com',
-          'https://tgc-real-time.onrender.com'
+          'https://tgc-real-time.onrender.com',
+          'https://tccgst.netlify.app/'
         ]
       : ['http://localhost:5173']
   },
