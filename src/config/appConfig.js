@@ -13,9 +13,10 @@ const config = {
       ? [
           process.env.FRONTEND_URL || 'https://your-frontend-domain.com',
           'https://tgc-real-time.onrender.com',
-          'https://tccgst.netlify.app/'
+          
+          'https://tccgst.netlify.app'
         ]
-      : ['http://localhost:5173']
+      : ['http://localhost:5173', 'https://tccgst.netlify.app']
   },
   database: {
     uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/tcc'
