@@ -1,0 +1,266 @@
+# ENDPOINTS DEL ROL ADMINISTRADOR - API REST
+
+BASE_URL: http://localhost:3000/api
+
+## AUTENTICACIÓN
+### Login
+- **POST** /auth/login
+- **Objeto a enviar:**
+```json
+{
+  "email": "admin@example.com",
+  "password": "password123"
+}
+```
+- **Respuesta:**
+```json
+{
+  "user": {
+    "id": "userId",
+    "name": "Nombre Admin",
+    "email": "admin@example.com",
+    "role": "administrador"
+  },
+  "token": "jwt_token_aqui"
+}
+```
+
+### Registrar Usuario (Solo Admin)
+- **POST** /auth/register
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Objeto a enviar:**
+```json
+{
+  "name": "Nuevo Usuario",
+  "email": "usuario@example.com",
+  "password": "password123",
+  "role": "revisor" // o "supervisor" o "administrador"
+}
+```
+
+## GESTIÓN DE USUARIOS (Admin total, otros limitado)
+
+### Listar Usuarios
+- **GET** /users
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Query params opcionales:** ?status=active (active/inactive)
+
+### Obtener Usuario por ID
+- **GET** /users/{id}
+- **Headers:** Authorization: Bearer {jwt_token}
+
+### Actualizar Usuario
+- **PUT** /users/{id}
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Objeto a enviar:**
+```json
+{
+  "name": "Nombre Actualizado",
+  "email": "nuevo@email.com",
+  "role": "supervisor"
+}
+```
+
+### Activar/Desactivar Usuario (Solo Admin)
+- **PATCH** /users/{id}/status
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Sin body requerido**
+
+### Eliminar Usuario (Solo Admin)
+- **DELETE** /users/{id}
+- **Headers:** Authorization: Bearer {jwt_token}
+
+## GESTIÓN DE CONSEJOS
+
+### Crear Consejo (Admin/Supervisor)
+- **POST** /advice
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Objeto a enviar:**
+```json
+{
+  "title": "Título del consejo",
+  "content": "Contenido detallado del consejo",
+  "category": "seguridad", // general, seguridad, productividad, calidad
+  "targetRole": "revisor", // todos, revisor, supervisor, administrador
+  "priority": "alta", // baja, media, alta
+  "validFrom": "2025-01-01T00:00:00Z", // opcional
+  "validTo": "2025-12-31T23:59:59Z" // opcional
+}
+```
+
+### Listar Todos los Consejos
+- **GET** /advice
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Query params opcionales:** 
+  - ?category=seguridad
+  - &targetRole=revisor
+  - &priority=alta
+  - &isActive=true
+  - &page=1&limit=10
+
+### Obtener Consejos para Usuario Actual
+- **GET** /advice/user
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Query params opcionales:** ?category=seguridad
+
+### Obtener Consejo por ID
+- **GET** /advice/{id}
+- **Headers:** Authorization: Bearer {jwt_token}
+
+### Actualizar Consejo (Admin/Supervisor)
+- **PUT** /advice/{id}
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Objeto a enviar:**
+```json
+{
+  "title": "Título actualizado",
+  "content": "Contenido actualizado",
+  "category": "productividad",
+  "targetRole": "todos",
+  "priority": "media",
+  "isActive": true,
+  "validFrom": "2025-01-01T00:00:00Z",
+  "validTo": "2025-12-31T23:59:59Z"
+}
+```
+
+### Eliminar Consejo (Solo Admin)
+- **DELETE** /advice/{id}
+- **Headers:** Authorization: Bearer {jwt_token}
+
+### Activar/Desactivar Consejo (Admin/Supervisor)
+- **PATCH** /advice/{id}/toggle
+- **Headers:** Authorization: Bearer {jwt_token}
+
+## GESTIÓN DE INCIDENTES
+
+### Crear Incidente
+- **POST** /incidents
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Objeto a enviar:**
+```json
+{
+  "processId": "64f123456789abcd12345678",
+  "type": "error", // warning, error, critical
+  "description": "Descripción del incidente",
+  "severity": "alta", // baja, media, alta
+  "affectedArea": "modulo_facturacion"
+}
+```
+
+### Obtener Incidentes por Proceso
+- **GET** /incidents/process/{processId}
+- **Headers:** Authorization: Bearer {jwt_token}
+
+### Resolver Incidente
+- **PATCH** /incidents/{id}/resolve
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Objeto a enviar:**
+```json
+{
+  "resolution": "Descripción de la resolución aplicada"
+}
+```
+
+### Obtener Incidentes Pendientes (Supervisor)
+- **GET** /incidents/pending
+- **Headers:** Authorization: Bearer {jwt_token}
+
+### Asignar Incidente a Revisor (Supervisor)
+- **PATCH** /incidents/{id}/assign
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Objeto a enviar:**
+```json
+{
+  "reviewerId": "64f123456789abcd12345678"
+}
+```
+
+### Aprobar Incidente (Supervisor)
+- **PATCH** /incidents/{id}/approve
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Objeto a enviar:**
+```json
+{
+  "approved": true,
+  "comments": "Comentarios de aprobación"
+}
+```
+
+## GESTIÓN DE PROCESOS
+
+### Obtener Procesos de Revisor
+- **GET** /processes/reviewer
+- **Headers:** Authorization: Bearer {jwt_token}
+
+### Obtener Procesos de Supervisor
+- **GET** /processes/supervisor
+- **Headers:** Authorization: Bearer {jwt_token}
+
+## REPORTES
+
+### Crear Reporte
+- **POST** /reports
+- **Headers:** Authorization: Bearer {jwt_token}
+- **Objeto a enviar:**
+```json
+{
+  "type": "incidents", // incidents, users, processes, advice
+  "filters": {
+    "startDate": "2025-01-01T00:00:00Z",
+    "endDate": "2025-01-31T23:59:59Z",
+    "status": "pending",
+    "userId": "64f123456789abcd12345678"
+  },
+  "format": "pdf" // pdf, excel, csv
+}
+```
+
+### Obtener Reporte por ID
+- **GET** /reports/{id}
+- **Headers:** Authorization: Bearer {jwt_token}
+
+## HEALTH CHECK
+
+### Verificar Estado del Servidor
+- **GET** /health
+- **Sin autenticación requerida**
+
+## ROLES Y PERMISOS
+
+### Administrador:
+- Acceso total a todos los endpoints
+- Puede crear, leer, actualizar y eliminar usuarios
+- Puede crear, leer, actualizar y eliminar consejos
+- Puede gestionar incidentes y procesos
+- Puede generar reportes
+
+### Supervisor:
+- Puede crear y actualizar consejos
+- Puede gestionar incidentes (asignar, aprobar)
+- Puede ver procesos supervisados
+- Acceso limitado a gestión de usuarios
+
+### Revisor:
+- Solo puede ver consejos dirigidos a su rol
+- Puede crear incidentes
+- Puede ver sus procesos asignados
+
+## NOTAS IMPORTANTES:
+
+1. **Autenticación:** Todos los endpoints (excepto /health y /auth/login) requieren token JWT en header Authorization
+2. **Formato de fecha:** Usar formato ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)
+3. **IDs:** Usar ObjectId de MongoDB (24 caracteres hexadecimales)
+4. **Roles válidos:** "administrador", "supervisor", "revisor"
+5. **Categorías de consejos:** "general", "seguridad", "productividad", "calidad"
+6. **Prioridades:** "baja", "media", "alta"
+7. **Tipos de incidente:** "warning", "error", "critical"
+
+## CÓDIGOS DE RESPUESTA HTTP:
+- 200: Éxito
+- 201: Creado exitosamente
+- 400: Error en datos enviados
+- 401: No autorizado
+- 403: Prohibido (sin permisos)
+- 404: Recurso no encontrado
+- 500: Error interno del servidor

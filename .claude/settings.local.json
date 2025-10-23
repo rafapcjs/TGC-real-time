@@ -1,31 +1,14 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(npm start)",
-      "Bash(set NODE_ENV=production)",
-      "Bash(node:*)",
-      "Bash(cross-env:*)",
-      "Bash(npm install:*)",
-      "Bash(npm run seed:full:*)",
-      "Bash(npm run dev:*)",
-      "Bash(taskkill:*)",
-      "Bash(cmd /c:*)",
-      "Bash(timeout 30 npm run seed:full)",
-      "Bash(curl:*)",
-      "Bash(wmic process:*)",
-      "Bash(set PORT=3002)",
-      "Bash(powershell:*)",
-      "Bash(npm run lint)",
-      "Bash(npm run:*)",
-      "Bash(rm:*)",
-      "Bash(npm test)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git checkout:*)",
-      "Bash(git branch:*)",
-      "Bash(git config:*)"
-    ],
-    "deny": [],
-    "ask": []
-  }
+  "enabledMcpjsonServers": [
+    "typescript-sdk",
+    "github",
+    "puppeteer",
+    "slack",
+    "filesystem",
+    "memory-bank",
+    "sequential-thinking",
+    "brave-search",
+    "google-maps",
+    "deep-graph"
+  ]
 }

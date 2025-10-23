@@ -4,6 +4,7 @@ import Report from '../models/Report.js';
 import fs from 'fs';
 import path from 'path';
 import puppeteer from 'puppeteer';
+import PDFDocument from 'pdfkit';
 
 export const generateReport = async (title, processIds, createdBy) => {
   let browser = null;
@@ -30,71 +31,61 @@ export const generateReport = async (title, processIds, createdBy) => {
 
     console.log('Found incidents:', incidents.length);
 
-    // Create HTML report content
-    console.log('Generating HTML content...');
-    const reportHtml = generateProfessionalHtmlReport(title, processes, incidents);
-    
-    // Generate PDF using Puppeteer in memory
-    console.log('Launching Puppeteer browser...');
-    browser = await puppeteer.launch({ 
-      headless: 'new',
-      args: [
-        '--no-sandbox', 
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ]
-    });
-    
-    console.log('Creating new page...');
-    const page = await browser.newPage();
-    
-    console.log('Setting page content...');
-    await page.setContent(reportHtml, { 
-      waitUntil: 'networkidle0',
-      timeout: 30000 
-    });
-    
-    console.log('Generating PDF...');
-    // Generate PDF buffer instead of saving to file
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '20mm',
-        right: '15mm',
-        bottom: '20mm',
-        left: '15mm'
-      },
-      timeout: 30000
-    });
-    
-    console.log('PDF generated successfully, size:', pdfBuffer.length, 'bytes');
-    
-    // Generate filename for download
-    const filename = `reporte-${title.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
-    
-    // Save report metadata to database (without file path since it's not saved)
-    const report = new Report({
-      title,
-      fileUrl: null, // No file URL since we're not saving the file
-      filename,
-      processIds,
-      createdBy
-    });
-    
-    await report.save();
-    console.log('Report metadata saved to database');
-    
-    return {
-      id: report._id,
-      pdfBuffer,
-      filename,
-      generatedAt: report.createdAt
-    };
+    // Try Puppeteer first, fallback to PDFKit if it fails
+    try {
+      console.log('Attempting PDF generation with Puppeteer...');
+      const pdfBuffer = await generatePDFWithPuppeteer(title, processes, incidents);
+      
+      // Generate filename for download
+      const filename = `reporte-${title.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Save report metadata to database
+      const report = new Report({
+        title,
+        fileUrl: null,
+        filename,
+        processIds,
+        createdBy
+      });
+      
+      await report.save();
+      console.log('Report metadata saved to database');
+      
+      return {
+        id: report._id,
+        pdfBuffer,
+        filename,
+        generatedAt: report.createdAt
+      };
+    } catch (puppeteerError) {
+      console.warn('Puppeteer failed, falling back to PDFKit:', puppeteerError.message);
+      
+      // Fallback to PDFKit
+      console.log('Generating PDF with PDFKit fallback...');
+      const pdfBuffer = await generatePDFWithPDFKit(title, processes, incidents);
+      
+      // Generate filename for download
+      const filename = `reporte-${title.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Save report metadata to database
+      const report = new Report({
+        title,
+        fileUrl: null,
+        filename,
+        processIds,
+        createdBy
+      });
+      
+      await report.save();
+      console.log('Report metadata saved to database (PDFKit fallback)');
+      
+      return {
+        id: report._id,
+        pdfBuffer,
+        filename,
+        generatedAt: report.createdAt
+      };
+    }
   } catch (error) {
     console.error('Error generating report - Details:', {
       message: error.message,
@@ -104,11 +95,7 @@ export const generateReport = async (title, processIds, createdBy) => {
     });
     
     // Provide more specific error messages
-    if (error.message.includes('Failed to launch')) {
-      throw new Error('Failed to launch PDF generator. Browser initialization error.');
-    } else if (error.message.includes('TimeoutError')) {
-      throw new Error('PDF generation timed out. The report might be too large or complex.');
-    } else if (error.message.includes('No processes found')) {
+    if (error.message.includes('No processes found')) {
       throw new Error('No processes found with the provided IDs');
     } else if (error.name === 'ValidationError') {
       throw new Error(`Database validation error: ${error.message}`);
@@ -126,6 +113,184 @@ export const generateReport = async (title, processIds, createdBy) => {
       }
     }
   }
+};
+
+// Puppeteer PDF generation
+const generatePDFWithPuppeteer = async (title, processes, incidents) => {
+  let browser = null;
+  
+  try {
+    // Create HTML report content
+    const reportHtml = generateProfessionalHtmlReport(title, processes, incidents);
+    
+    // Configuration for production environments (like Render)
+    const puppeteerConfig = {
+      headless: 'new',
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection'
+      ]
+    };
+
+    // For production environments, try to use system Chrome
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        // Try using system Chrome first
+        puppeteerConfig.executablePath = '/usr/bin/google-chrome-stable';
+      } catch (err) {
+        console.log('System Chrome not found, falling back to bundled Chromium');
+        // If system Chrome not available, try common paths
+        const possiblePaths = [
+          '/usr/bin/chromium-browser',
+          '/usr/bin/chromium',
+          '/opt/google/chrome/chrome',
+          '/usr/bin/google-chrome'
+        ];
+        
+        for (const chromePath of possiblePaths) {
+          try {
+            if (require('fs').existsSync(chromePath)) {
+              puppeteerConfig.executablePath = chromePath;
+              break;
+            }
+          } catch (e) {
+            // Continue to next path
+          }
+        }
+      }
+    }
+
+    browser = await puppeteer.launch(puppeteerConfig);
+    const page = await browser.newPage();
+    
+    await page.setContent(reportHtml, { 
+      waitUntil: 'networkidle0',
+      timeout: 30000 
+    });
+    
+    // Generate PDF buffer
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20mm',
+        right: '15mm',
+        bottom: '20mm',
+        left: '15mm'
+      },
+      timeout: 30000
+    });
+    
+    console.log('PDF generated successfully with Puppeteer, size:', pdfBuffer.length, 'bytes');
+    return pdfBuffer;
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+};
+
+// PDFKit fallback PDF generation
+const generatePDFWithPDFKit = async (title, processes, incidents) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50 });
+      const buffers = [];
+      
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(buffers);
+        console.log('PDF generated successfully with PDFKit, size:', pdfBuffer.length, 'bytes');
+        resolve(pdfBuffer);
+      });
+      
+      // Header
+      doc.fontSize(24).font('Helvetica-Bold');
+      doc.text(title, { align: 'center' });
+      doc.moveDown();
+      
+      doc.fontSize(12).font('Helvetica');
+      doc.text(`Generado el: ${new Date().toLocaleDateString('es-ES')}`, { align: 'center' });
+      doc.moveDown(2);
+      
+      // Summary
+      doc.fontSize(16).font('Helvetica-Bold');
+      doc.text('Resumen:', { underline: true });
+      doc.moveDown();
+      
+      doc.fontSize(12).font('Helvetica');
+      doc.text(`• Total de procesos: ${processes.length}`);
+      doc.text(`• Total de incidencias: ${incidents.length}`);
+      doc.text(`• Incidencias pendientes: ${incidents.filter(i => i.status === 'pendiente').length}`);
+      doc.text(`• Incidencias resueltas: ${incidents.filter(i => i.status === 'resuelta').length}`);
+      doc.moveDown(2);
+      
+      // Processes details
+      doc.fontSize(16).font('Helvetica-Bold');
+      doc.text('Detalle de Procesos:', { underline: true });
+      doc.moveDown();
+      
+      processes.forEach((process, index) => {
+        const processIncidents = incidents.filter(i => 
+          i.processId._id.toString() === process._id.toString()
+        );
+        
+        doc.fontSize(14).font('Helvetica-Bold');
+        doc.text(`${index + 1}. ${process.name}`);
+        doc.moveDown(0.5);
+        
+        doc.fontSize(12).font('Helvetica');
+        doc.text(`Estado: ${process.status}`);
+        doc.text(`Revisor: ${process.assignedReviewer ? process.assignedReviewer.name : 'Sin asignar'}`);
+        doc.text(`Incidencias: ${processIncidents.length}`);
+        doc.moveDown();
+        
+        // Incidents for this process
+        if (processIncidents.length > 0) {
+          doc.fontSize(12).font('Helvetica-Bold');
+          doc.text('Incidencias:');
+          doc.moveDown(0.5);
+          
+          processIncidents.forEach((incident, incIndex) => {
+            doc.fontSize(11).font('Helvetica');
+            doc.text(`  ${incIndex + 1}. ${incident.description}`);
+            doc.text(`     Estado: ${incident.status}`);
+            doc.text(`     Creado por: ${incident.createdBy.name}`);
+            doc.text(`     Fecha: ${new Date(incident.createdAt).toLocaleDateString('es-ES')}`);
+            doc.moveDown(0.5);
+          });
+        }
+        
+        doc.moveDown();
+        
+        // Add page break if needed
+        if (index < processes.length - 1 && doc.y > 700) {
+          doc.addPage();
+        }
+      });
+      
+      // Footer
+      doc.fontSize(10).font('Helvetica');
+      doc.text('Reporte generado automáticamente por el Sistema de Gestión de Incidencias', 
+        50, doc.page.height - 50, { align: 'center' });
+      
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
 };
 
 const generateProfessionalHtmlReport = (title, processes, incidents) => {

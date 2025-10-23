@@ -1,0 +1,86 @@
+POSTMAN TEST REQUESTS FOR REPORT API
+=====================================
+
+URL: http://localhost:3001/api/v1/reports
+Method: POST
+Headers: 
+- Content-Type: application/json
+- Authorization: Bearer [TOKEN_FROM_LOGIN]
+
+PRIMERO HACER LOGIN:
+URL: http://localhost:3001/api/v1/auth/login
+Method: POST
+Body: {"email":"maria.revisor@empresa.com","password":"revisor123"}
+
+=====================================
+
+TEST 1 - Reporte completo con todos los procesos
+{
+  "title": "Reporte Mensual de Procesos - Octubre 2024",
+  "processIds": [
+    "68c7267a9ec44dddb61bf387",
+    "68c7267a9ec44dddb61bf388",
+    "68c7267a9ec44dddb61bf385"
+  ],
+  "createdBy": "68c7267a9ec44dddb61bf382"
+}
+
+=====================================
+
+TEST 2 - Reporte de proceso único (Control de Gastos)
+{
+  "title": "Análisis de Control de Gastos Operativos",
+  "processIds": [
+    "68c7267a9ec44dddb61bf387"
+  ],
+  "createdBy": "68c7267a9ec44dddb61bf382"
+}
+
+=====================================
+
+TEST 3 - Reporte de procesos en revisión
+{
+  "title": "Procesos Pendientes de Revisión - Q4 2024",
+  "processIds": [
+    "68c7267a9ec44dddb61bf388",
+    "68c7267a9ec44dddb61bf385"
+  ],
+  "createdBy": "68c7267a9ec44dddb61bf382"
+}
+
+=====================================
+
+TEST 4 - Reporte de auditoría trimestral
+{
+  "title": "Informe de Auditoría Trimestral",
+  "processIds": [
+    "68c7267a9ec44dddb61bf385",
+    "68c7267a9ec44dddb61bf387"
+  ],
+  "createdBy": "68c7267a9ec44dddb61bf382"
+}
+
+=====================================
+
+TEST 5 - Reporte específico de reconciliación
+{
+  "title": "Reporte Especial - Reconciliación Bancaria",
+  "processIds": [
+    "68c7267a9ec44dddb61bf388"
+  ],
+  "createdBy": "68c7267a9ec44dddb61bf382"
+}
+
+=====================================
+
+NOTAS IMPORTANTES:
+- Usar siempre el token obtenido del login
+- Los IDs de procesos son reales del sistema
+- El createdBy corresponde al ID del revisor logueado
+- Cada request genera un PDF diferente
+- El servidor debe estar corriendo en puerto 3001
+
+PROCESOS DISPONIBLES:
+- 68c7267a9ec44dddb61bf387: Control de Gastos Operativos (completado)
+- 68c7267a9ec44dddb61bf388: Reconciliación Bancaria (en revisión)  
+- 68c7267a9ec44dddb61bf385: Proceso de Contabilidad General (en revisión)

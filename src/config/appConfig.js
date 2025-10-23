@@ -5,7 +5,7 @@
 
 const config = {
   server: {
-    port: parseInt(process.env.PORT) || 3001,
+    port: parseInt(process.env.PORT) || 3002,
     host: '0.0.0.0',
   },
   cors: {

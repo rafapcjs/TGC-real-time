@@ -7,6 +7,8 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node src/server.js",
     "dev": "cross-env NODE_ENV=development node --watch src/server.js",
+    "build": "npm install && npx puppeteer browsers install chrome",
+    "postinstall": "npx puppeteer browsers install chrome",
     "seed": "node src/seeders/adminSeeder.js",
     "seed:reviewer": "node src/seeders/reviewerSeeder.js",
     "seed:processes": "node src/seeders/processSeeder.js",
@@ -17,6 +19,8 @@
     "@fastify/cors": "^11.1.0",
     "@fastify/jwt": "^10.0.0",
     "@fastify/multipart": "^9.2.1",
+    "@fastify/swagger": "^9.5.2",
+    "@fastify/swagger-ui": "^5.2.3",
     "@fastify/websocket": "^11.2.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.7.0",
