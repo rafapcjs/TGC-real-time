@@ -1,0 +1,80 @@
+RUTA PARA LISTAR PROCESOS - SUPERVISOR
+
+ENDPOINT:
+GET http://localhost:3001/api/v1/processes/supervisor
+
+HEADERS REQUERIDOS:
+Authorization: Bearer {token_de_supervisor_o_admin}
+Content-Type: application/json
+
+PERMISOS:
+- Supervisores: ✅ Permitido
+- Administradores: ✅ Permitido  
+- Revisores: ❌ No permitido
+
+RESPUESTA HTTP 200:
+[
+  {
+    "id": "68c7267a9ec44dddb61bf385",
+    "name": "Proceso de Contabilidad General",
+    "description": "Registro y control de movimientos contables mensuales",
+    "status": "en revisión",
+    "dueDate": "2025-10-15T00:00:00.000Z",
+    "assignedReviewer": {
+      "_id": "68c7267a9ec44dddb61bf382",
+      "name": "María Test Updated",
+      "email": "maria.revisor@empresa.com"
+    },
+    "createdBy": {
+      "_id": "68c7267a9ec44dddb61bf381",
+      "name": "Carlos Admin",
+      "email": "admin@empresa.com"
+    },
+    "createdAt": "2025-09-14T20:32:59.001Z",
+    "updatedAt": "2025-09-14T20:32:59.001Z"
+  },
+  {
+    "id": "68c7267a9ec44dddb61bf387",
+    "name": "Control de Gastos Operativos",
+    "description": "Revisión de gastos del mes anterior",
+    "status": "completado",
+    "dueDate": "2025-09-01T00:00:00.000Z",
+    "assignedReviewer": {
+      "_id": "68c7267a9ec44dddb61bf382",
+      "name": "María Test Updated",
+      "email": "maria.revisor@empresa.com"
+    },
+    "createdBy": {
+      "_id": "68c7267a9ec44dddb61bf381",
+      "name": "Carlos Admin",
+      "email": "admin@empresa.com"
+    },
+    "createdAt": "2025-09-14T20:32:59.002Z",
+    "updatedAt": "2025-09-14T20:32:59.002Z"
+  }
+]
+
+CAMPOS DEL OBJETO:
+- id: String - ID único del proceso
+- name: String - Nombre del proceso
+- description: String - Descripción detallada
+- status: String - Estado del proceso (pendiente, en revisión, completado)
+- dueDate: Date - Fecha límite para completar
+- assignedReviewer: Object|null - Revisor asignado con _id, name, email
+- createdBy: Object - Usuario que creó el proceso con _id, name, email
+- createdAt: Date - Fecha de creación
+- updatedAt: Date - Fecha de última actualización
+
+POSIBLES ESTADOS:
+- "pendiente": Proceso sin asignar
+- "en revisión": Proceso asignado a revisor
+- "completado": Proceso finalizado
+
+EJEMPLO CURL:
+curl -H "Authorization: Bearer tu_token_supervisor" \
+     http://localhost:3001/api/v1/processes/supervisor
+
+ERRORES POSIBLES:
+- 401: Token inválido o no proporcionado
+- 403: Usuario sin permisos (solo supervisor/admin)
+- 500: Error interno del servidor

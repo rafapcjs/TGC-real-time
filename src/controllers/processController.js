@@ -30,11 +30,13 @@ export const getReviewerProcesses = async (request, reply) => {
 
 export const getSupervisorProcesses = async (request, reply) => {
   try {
-    if (request.user.role !== 'supervisor') {
-      return reply.status(403).send({ error: 'Solo los supervisores pueden acceder a esta información' });
+    // Permitir acceso a supervisores y administradores
+    if (request.user.role !== 'supervisor' && request.user.role !== 'administrador') {
+      return reply.status(403).send({ error: 'Solo los supervisores y administradores pueden acceder a esta información' });
     }
 
-    const processes = await Process.find({ status: 'en revisión' })
+    // Obtener todos los procesos para supervisión
+    const processes = await Process.find({})
       .populate('assignedReviewer', 'name email')
       .populate('createdBy', 'name email')
       .sort({ dueDate: 1, createdAt: -1 });
@@ -42,8 +44,13 @@ export const getSupervisorProcesses = async (request, reply) => {
     reply.send(processes.map(process => ({
       id: process._id,
       name: process.name,
+      description: process.description,
       status: process.status,
-      dueDate: process.dueDate
+      dueDate: process.dueDate,
+      assignedReviewer: process.assignedReviewer,
+      createdBy: process.createdBy,
+      createdAt: process.createdAt,
+      updatedAt: process.updatedAt
     })));
   } catch (error) {
     console.error('Error getting supervisor processes:', error);
