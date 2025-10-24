@@ -1,4 +1,12 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(cd:*)",
+      "Bash(node -e \"\nimport mongoose from ''mongoose'';\nimport Process from ''./src/models/Process.js'';\nimport ''./src/config/database.js'';\n\nmongoose.connect(process.env.MONGODB_URI).then(async () => {\n  const processes = await Process.find({});\n  console.log(''Processes found:'', processes.map(p => ({ id: p._id.toString(), name: p.name })));\n  process.exit(0);\n}).catch(console.error);\n\")"
+    ]
+  },
   "enabledMcpjsonServers": [
     "typescript-sdk",
     "github",

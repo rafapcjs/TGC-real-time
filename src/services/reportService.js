@@ -5,6 +5,28 @@ import fs from 'fs';
 import path from 'path';
 import puppeteer from 'puppeteer';
 import PDFDocument from 'pdfkit';
+import { v4 as uuidv4 } from 'uuid';
+
+// Helper function to save report metadata
+const saveReportMetadata = async (title, processIds, createdBy) => {
+  const cleanTitle = title.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-').toLowerCase();
+  const uuid = uuidv4().split('-')[0]; // Use first part of UUID for shorter filename
+  const date = new Date().toISOString().split('T')[0];
+  const filename = `${cleanTitle}-${uuid}-${date}.pdf`;
+  
+  const report = new Report({
+    title,
+    fileUrl: null,
+    filename,
+    processIds,
+    createdBy
+  });
+  
+  await report.save();
+  console.log('Report metadata saved to database');
+  
+  return { report, filename };
+};
 
 export const generateReport = async (title, processIds, createdBy) => {
   let browser = null;
@@ -32,60 +54,29 @@ export const generateReport = async (title, processIds, createdBy) => {
     console.log('Found incidents:', incidents.length);
 
     // Try Puppeteer first, fallback to PDFKit if it fails
+    let pdfBuffer;
+    let generationMethod = 'Puppeteer';
+    
     try {
       console.log('Attempting PDF generation with Puppeteer...');
-      const pdfBuffer = await generatePDFWithPuppeteer(title, processes, incidents);
-      
-      // Generate filename for download
-      const filename = `reporte-${title.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
-      
-      // Save report metadata to database
-      const report = new Report({
-        title,
-        fileUrl: null,
-        filename,
-        processIds,
-        createdBy
-      });
-      
-      await report.save();
-      console.log('Report metadata saved to database');
-      
-      return {
-        id: report._id,
-        pdfBuffer,
-        filename,
-        generatedAt: report.createdAt
-      };
+      pdfBuffer = await generatePDFWithPuppeteer(title, processes, incidents);
     } catch (puppeteerError) {
       console.warn('Puppeteer failed, falling back to PDFKit:', puppeteerError.message);
-      
-      // Fallback to PDFKit
       console.log('Generating PDF with PDFKit fallback...');
-      const pdfBuffer = await generatePDFWithPDFKit(title, processes, incidents);
-      
-      // Generate filename for download
-      const filename = `reporte-${title.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
-      
-      // Save report metadata to database
-      const report = new Report({
-        title,
-        fileUrl: null,
-        filename,
-        processIds,
-        createdBy
-      });
-      
-      await report.save();
-      console.log('Report metadata saved to database (PDFKit fallback)');
-      
-      return {
-        id: report._id,
-        pdfBuffer,
-        filename,
-        generatedAt: report.createdAt
-      };
+      pdfBuffer = await generatePDFWithPDFKit(title, processes, incidents);
+      generationMethod = 'PDFKit';
     }
+    
+    // Save report metadata
+    const { report, filename } = await saveReportMetadata(title, processIds, createdBy);
+    console.log(`Report generated successfully with ${generationMethod}`);
+    
+    return {
+      id: report._id,
+      pdfBuffer,
+      filename,
+      generatedAt: report.createdAt
+    };
   } catch (error) {
     console.error('Error generating report - Details:', {
       message: error.message,

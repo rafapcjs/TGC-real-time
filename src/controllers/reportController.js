@@ -5,25 +5,24 @@ export const createReport = async (request, reply) => {
   try {
     const { title, processIds } = request.body;
     
+    // Validate input
     if (!title || !processIds || !Array.isArray(processIds)) {
-      const error = new Error('Title y processIds son requeridos. processIds debe ser un array.');
-      error.statusCode = 400;
-      error.code = 'VALIDATION_ERROR';
-      throw error;
+      return reply.status(400).send({ 
+        error: 'Title y processIds son requeridos. processIds debe ser un array.' 
+      });
     }
 
     if (processIds.length === 0) {
-      const error = new Error('Al menos un ID de proceso es requerido.');
-      error.statusCode = 400;
-      error.code = 'VALIDATION_ERROR';
-      throw error;
+      return reply.status(400).send({ 
+        error: 'Al menos un ID de proceso es requerido.' 
+      });
     }
 
+    // Check permissions
     if (request.user.role !== 'revisor' && request.user.role !== 'supervisor') {
-      const error = new Error('Solo los revisores y supervisores pueden generar reportes');
-      error.statusCode = 403;
-      error.code = 'FORBIDDEN';
-      throw error;
+      return reply.status(403).send({ 
+        error: 'Solo los revisores y supervisores pueden generar reportes' 
+      });
     }
 
     console.log('Generating report request:', {
@@ -38,10 +37,10 @@ export const createReport = async (request, reply) => {
     console.log('Report generated successfully:', {
       reportId: report.id,
       filename: report.filename,
-      bufferSize: report.pdfBuffer.length
+      bufferSize: report.pdfBuffer?.length || 0
     });
     
-    // Enviar el PDF directamente al cliente para descarga
+    // Send PDF directly to client for automatic download
     reply
       .type('application/pdf')
       .header('Content-Disposition', `attachment; filename="${report.filename}"`)
@@ -51,13 +50,16 @@ export const createReport = async (request, reply) => {
   } catch (error) {
     console.error('Error in createReport controller:', {
       message: error.message,
-      statusCode: error.statusCode,
-      code: error.code,
+      userId: request.user?.id,
+      userRole: request.user?.role,
       stack: error.stack
     });
     
-    // Let the global error handler take care of the response
-    throw error;
+    // Send appropriate error response
+    const statusCode = error.statusCode || 500;
+    const message = error.message || 'Error interno del servidor';
+    
+    reply.status(statusCode).send({ error: message });
   }
 };
 
@@ -65,19 +67,18 @@ export const getReport = async (request, reply) => {
   try {
     const { id } = request.params;
 
+    // Check permissions
     if (request.user.role !== 'revisor' && request.user.role !== 'supervisor') {
-      const error = new Error('Solo los revisores y supervisores pueden ver reportes');
-      error.statusCode = 403;
-      error.code = 'FORBIDDEN';
-      throw error;
+      return reply.status(403).send({ 
+        error: 'Solo los revisores y supervisores pueden ver reportes' 
+      });
     }
 
     const report = await Report.findById(id);
     if (!report) {
-      const error = new Error('Reporte no encontrado');
-      error.statusCode = 404;
-      error.code = 'NOT_FOUND';
-      throw error;
+      return reply.status(404).send({ 
+        error: 'Reporte no encontrado' 
+      });
     }
 
     console.log('Regenerating report for viewing:', {
@@ -87,16 +88,16 @@ export const getReport = async (request, reply) => {
       userId: request.user.id
     });
 
-    // Regenerar el PDF con los mismos datos
+    // Regenerate PDF with same data
     const regeneratedReport = await generateReport(report.title, report.processIds, report.createdBy);
     
     console.log('Report regenerated successfully for viewing:', {
       reportId: report._id,
       filename: regeneratedReport.filename,
-      bufferSize: regeneratedReport.pdfBuffer.length
+      bufferSize: regeneratedReport.pdfBuffer?.length || 0
     });
 
-    // Enviar el PDF directamente al cliente para descarga
+    // Send PDF directly to client for download
     reply
       .type('application/pdf')
       .header('Content-Disposition', `attachment; filename="${regeneratedReport.filename}"`)
@@ -106,13 +107,112 @@ export const getReport = async (request, reply) => {
   } catch (error) {
     console.error('Error in getReport controller:', {
       message: error.message,
-      statusCode: error.statusCode,
-      code: error.code,
+      userId: request.user?.id,
+      userRole: request.user?.role,
       stack: error.stack
     });
     
-    // Let the global error handler take care of the response
-    throw error;
+    // Send appropriate error response
+    const statusCode = error.statusCode || 500;
+    const message = error.message || 'Error interno del servidor';
+    
+    reply.status(statusCode).send({ error: message });
+  }
+};
+
+// Download PDF for specific report
+export const downloadReport = async (request, reply) => {
+  try {
+    const { id } = request.params;
+
+    // Check permissions
+    if (request.user.role !== 'revisor' && request.user.role !== 'supervisor') {
+      return reply.status(403).send({ 
+        error: 'Solo los revisores y supervisores pueden descargar reportes' 
+      });
+    }
+
+    const report = await Report.findById(id);
+    if (!report) {
+      return reply.status(404).send({ 
+        error: 'Reporte no encontrado' 
+      });
+    }
+
+    console.log('Downloading report:', {
+      reportId: report._id,
+      title: report.title,
+      userId: request.user.id
+    });
+
+    // Regenerate PDF for download
+    const regeneratedReport = await generateReport(report.title, report.processIds, report.createdBy);
+    
+    console.log('Report ready for download:', {
+      reportId: report._id,
+      filename: regeneratedReport.filename,
+      bufferSize: regeneratedReport.pdfBuffer?.length || 0
+    });
+
+    // Send PDF directly to client for download
+    reply
+      .type('application/pdf')
+      .header('Content-Disposition', `attachment; filename="${regeneratedReport.filename}"`)
+      .header('Content-Length', regeneratedReport.pdfBuffer.length)
+      .send(regeneratedReport.pdfBuffer);
+
+  } catch (error) {
+    console.error('Error in downloadReport controller:', {
+      message: error.message,
+      userId: request.user?.id,
+      userRole: request.user?.role,
+      stack: error.stack
+    });
+    
+    reply.status(500).send({ error: 'Error interno del servidor' });
+  }
+};
+
+// Get list of reports for reviewers and supervisors
+export const getReports = async (request, reply) => {
+  try {
+    // Check permissions
+    if (request.user.role !== 'revisor' && request.user.role !== 'supervisor') {
+      return reply.status(403).send({ 
+        error: 'Solo los revisores y supervisores pueden ver reportes' 
+      });
+    }
+
+    // Filter reports based on role
+    let filter = {};
+    if (request.user.role === 'revisor') {
+      filter = { createdBy: request.user.id };
+    }
+
+    const reports = await Report.find(filter)
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    const formattedReports = reports.map(report => ({
+      id: report._id,
+      title: report.title,
+      filename: report.filename,
+      processCount: report.processIds.length,
+      createdBy: report.createdBy,
+      createdAt: report.createdAt
+    }));
+
+    reply.send(formattedReports);
+
+  } catch (error) {
+    console.error('Error in getReports controller:', {
+      message: error.message,
+      userId: request.user?.id,
+      userRole: request.user?.role,
+      stack: error.stack
+    });
+    
+    reply.status(500).send({ error: 'Error interno del servidor' });
   }
 };
 
