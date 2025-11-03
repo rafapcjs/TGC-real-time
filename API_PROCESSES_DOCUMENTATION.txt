@@ -1,0 +1,335 @@
+===========================================
+📋 API DE PROCESOS - DOCUMENTACIÓN FRONTEND
+===========================================
+
+🔐 BASE URL: http://localhost:3001/api/v1/processes
+🎯 AUTENTICACIÓN: Bearer Token en Header Authorization
+
+===========================================
+🏢 ROLES Y PERMISOS
+===========================================
+
+👨‍💼 ADMINISTRADOR:
+  ✅ Crear procesos
+  ✅ Ver todos los procesos
+  ✅ Actualizar cualquier campo
+  ✅ Eliminar procesos
+  ✅ Ver estadísticas
+  ✅ Asignar revisores
+
+👩‍🔬 REVISOR:
+  ❌ Crear procesos
+  ✅ Ver SOLO procesos asignados a él
+  ✅ Actualizar SOLO el campo "status" de sus procesos
+  ❌ Actualizar otros campos
+  ❌ Eliminar procesos
+  ❌ Ver estadísticas
+
+👨‍💼 SUPERVISOR:
+  ❌ Crear procesos
+  ✅ Ver todos los procesos
+  ✅ Actualizar cualquier campo EXCEPTO assignedReviewer
+  ❌ Eliminar procesos
+  ✅ Ver estadísticas
+
+===========================================
+📡 ENDPOINTS DISPONIBLES
+===========================================
+
+1️⃣ OBTENER TODOS LOS PROCESOS
+  📍 GET /api/v1/processes
+  🔒 Permisos: Admin (todos) | Supervisor (todos) | Revisor (solo asignados)
+  
+  📨 Request:
+  Headers: {
+    "Authorization": "Bearer <token>",
+    "Content-Type": "application/json"
+  }
+  
+  📥 Response Success (200):
+  [
+    {
+      "id": "68c7267a9ec44dddb61bf385",
+      "name": "Proceso de Contabilidad General",
+      "description": "Registro y control de movimientos contables",
+      "status": "en revisión",
+      "dueDate": "2025-10-15T00:00:00.000Z",
+      "assignedReviewer": {
+        "_id": "68c7267a9ec44dddb61bf382",
+        "name": "María Revisora",
+        "email": "maria.revisor@empresa.com"
+      },
+      "createdBy": {
+        "_id": "68c7267a9ec44dddb61bf381",
+        "name": "Carlos Admin",
+        "email": "admin@empresa.com"
+      },
+      "createdAt": "2025-09-14T20:32:59.001Z",
+      "updatedAt": "2025-09-14T20:32:59.001Z"
+    }
+  ]
+
+-------------------------------------------
+
+2️⃣ OBTENER PROCESO POR ID
+  📍 GET /api/v1/processes/:id
+  🔒 Permisos: Admin/Supervisor (cualquier proceso) | Revisor (solo asignados)
+  
+  📨 Request:
+  Headers: {
+    "Authorization": "Bearer <token>",
+    "Content-Type": "application/json"
+  }
+  
+  📥 Response Success (200):
+  {
+    "id": "68c7267a9ec44dddb61bf385",
+    "name": "Proceso de Contabilidad General",
+    "description": "Registro y control de movimientos contables",
+    "status": "en revisión",
+    "dueDate": "2025-10-15T00:00:00.000Z",
+    "assignedReviewer": { ... },
+    "createdBy": { ... },
+    "createdAt": "2025-09-14T20:32:59.001Z",
+    "updatedAt": "2025-09-14T20:32:59.001Z"
+  }
+  
+  📥 Response Error (403):
+  { "error": "No tienes permisos para ver este proceso" }
+
+-------------------------------------------
+
+3️⃣ CREAR PROCESO
+  📍 POST /api/v1/processes
+  🔒 Permisos: SOLO ADMINISTRADOR
+  
+  📨 Request:
+  Headers: {
+    "Authorization": "Bearer <token>",
+    "Content-Type": "application/json"
+  }
+  Body: {
+    "name": "Nombre del proceso (REQUERIDO)",
+    "description": "Descripción opcional",
+    "dueDate": "2025-12-31", // Fecha límite (formato: YYYY-MM-DD)
+    "assignedReviewerId": "ID_del_revisor_opcional"
+  }
+  
+  📥 Response Success (201):
+  {
+    "id": "nuevo_id_generado",
+    "name": "Nombre del proceso",
+    "description": "Descripción opcional",
+    "status": "pendiente", // O "en revisión" si se asignó revisor
+    "dueDate": "2025-12-31T00:00:00.000Z",
+    "assignedReviewer": null, // O datos del revisor si se asignó
+    "createdBy": { ... },
+    "createdAt": "2025-11-03T17:54:05.462Z"
+  }
+  
+  📥 Response Error (403):
+  { "error": "Solo los administradores pueden crear procesos" }
+
+-------------------------------------------
+
+4️⃣ ACTUALIZAR PROCESO
+  📍 PUT /api/v1/processes/:id
+  🔒 Permisos: 
+    - Admin: Puede actualizar cualquier campo
+    - Supervisor: Cualquier campo EXCEPTO assignedReviewer
+    - Revisor: SOLO "status" de procesos asignados a él
+  
+  📨 Request:
+  Headers: {
+    "Authorization": "Bearer <token>",
+    "Content-Type": "application/json"
+  }
+  
+  // ADMIN puede enviar cualquier campo:
+  Body: {
+    "name": "Nuevo nombre",
+    "description": "Nueva descripción",
+    "status": "completado", // pendiente | en revisión | completado
+    "dueDate": "2025-12-31",
+    "assignedReviewer": "nuevo_revisor_id"
+  }
+  
+  // SUPERVISOR puede enviar excepto assignedReviewer:
+  Body: {
+    "name": "Nuevo nombre",
+    "description": "Nueva descripción", 
+    "status": "completado",
+    "dueDate": "2025-12-31"
+  }
+  
+  // REVISOR solo puede enviar:
+  Body: {
+    "status": "completado"
+  }
+  
+  📥 Response Success (200):
+  {
+    "id": "68c7267a9ec44dddb61bf385",
+    // ... proceso actualizado
+  }
+  
+  📥 Response Error (403):
+  { "error": "Solo puedes actualizar el campo 'status'. Campos no permitidos: name" }
+
+-------------------------------------------
+
+5️⃣ ELIMINAR PROCESO
+  📍 DELETE /api/v1/processes/:id
+  🔒 Permisos: SOLO ADMINISTRADOR
+  
+  📨 Request:
+  Headers: {
+    "Authorization": "Bearer <token>"
+  }
+  
+  📥 Response Success (200):
+  {
+    "message": "Proceso eliminado exitosamente",
+    "id": "68c7267a9ec44dddb61bf385"
+  }
+  
+  📥 Response Error (403):
+  { "error": "Solo los administradores pueden eliminar procesos" }
+
+-------------------------------------------
+
+6️⃣ OBTENER PROCESOS POR ESTADO
+  📍 GET /api/v1/processes/status/:status
+  🔒 Permisos: Admin/Supervisor (todos) | Revisor (solo asignados)
+  
+  Estados válidos: "pendiente" | "en revisión" | "completado"
+  
+  📨 Request:
+  Headers: {
+    "Authorization": "Bearer <token>",
+    "Content-Type": "application/json"
+  }
+  
+  📥 Response Success (200):
+  [
+    // Array de procesos con el estado especificado
+  ]
+
+-------------------------------------------
+
+7️⃣ OBTENER ESTADÍSTICAS
+  📍 GET /api/v1/processes/stats/overview
+  🔒 Permisos: SOLO ADMINISTRADOR Y SUPERVISOR
+  
+  📨 Request:
+  Headers: {
+    "Authorization": "Bearer <token>",
+    "Content-Type": "application/json"
+  }
+  
+  📥 Response Success (200):
+  {
+    "total": 8,
+    "overdue": 3, // Procesos vencidos
+    "byStatus": {
+      "pendiente": 2,
+      "en revisión": 4,
+      "completado": 2
+    }
+  }
+  
+  📥 Response Error (403):
+  { "error": "Solo administradores y supervisores pueden ver estadísticas" }
+
+===========================================
+📚 ENDPOINTS ADICIONALES (YA EXISTENTES)
+===========================================
+
+8️⃣ OBTENER PROCESOS DEL REVISOR (ENDPOINT ESPECÍFICO)
+  📍 GET /api/v1/processes/reviewer
+  🔒 Permisos: SOLO REVISOR
+  
+9️⃣ OBTENER PROCESOS PARA SUPERVISIÓN
+  📍 GET /api/v1/processes/supervisor
+  🔒 Permisos: SUPERVISOR Y ADMINISTRADOR
+  
+🔟 ASIGNAR REVISOR A PROCESO
+  📍 PUT /api/v1/processes/:processId/assign
+  🔒 Permisos: SOLO ADMINISTRADOR
+  Body: { "reviewerId": "id_del_revisor" }
+
+1️⃣1️⃣ OBTENER REVISORES DISPONIBLES
+  📍 GET /api/v1/processes/reviewers
+  🔒 Permisos: SOLO ADMINISTRADOR
+
+===========================================
+🔑 CREDENCIALES DE PRUEBA
+===========================================
+
+👨‍💼 ADMINISTRADOR:
+  Email: admin@empresa.com
+  Password: admin123456
+
+👩‍🔬 REVISOR:
+  Email: maria.revisor@empresa.com
+  Password: revisor123
+
+👨‍💼 SUPERVISOR:
+  Email: juan.supervisor@empresa.com
+  Password: supervisor123
+
+===========================================
+🚨 CÓDIGOS DE ERROR COMUNES
+===========================================
+
+400 - Bad Request: Datos inválidos o faltantes
+401 - Unauthorized: Token inválido o faltante
+403 - Forbidden: Sin permisos para la operación
+404 - Not Found: Proceso no encontrado
+500 - Internal Server Error: Error del servidor
+
+===========================================
+💡 NOTAS PARA EL FRONTEND
+===========================================
+
+1. 🔐 Siempre incluir el token JWT en el header Authorization
+2. 📋 Validar permisos en el frontend según el rol del usuario
+3. 🎯 Los revisores solo ven procesos donde assignedReviewer = su_id
+4. ⚠️ Los campos assignedReviewer y createdBy son ObjectIds de MongoDB
+5. 📅 Las fechas están en formato ISO (UTC)
+6. 🔄 El status siempre debe ser: "pendiente", "en revisión" o "completado"
+7. 🚫 Revisor no puede cambiar name, description, dueDate, assignedReviewer
+
+===========================================
+🌐 EJEMPLO DE USO EN JAVASCRIPT
+===========================================
+
+// Obtener token del login
+const token = localStorage.getItem('authToken');
+
+// Función para hacer requests
+async function apiRequest(endpoint, method = 'GET', data = null) {
+  const config = {
+    method,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  };
+  
+  if (data) {
+    config.body = JSON.stringify(data);
+  }
+  
+  const response = await fetch(`http://localhost:3001/api/v1/processes${endpoint}`, config);
+  return await response.json();
+}
+
+// Ejemplos de uso:
+const allProcesses = await apiRequest('');
+const oneProcess = await apiRequest('/68c7267a9ec44dddb61bf385');
+const newProcess = await apiRequest('', 'POST', { name: 'Test', description: 'Test desc' });
+const updated = await apiRequest('/id', 'PUT', { status: 'completado' });
+const stats = await apiRequest('/stats/overview');
+
+===========================================

@@ -3,9 +3,22 @@ import {
   getSupervisorProcesses, 
   createProcess, 
   assignReviewer,
-  getAvailableReviewers 
+  getAvailableReviewers,
+  getAllProcesses,
+  getProcessById,
+  updateProcess,
+  deleteProcess,
+  getProcessesByStatus,
+  getProcessStatistics
 } from '../controllers/processController.js';
 import { verifyToken } from '../middlewares/auth.js';
+import {
+  createProcessSchema,
+  updateProcessSchema,
+  assignReviewerSchema,
+  processParamsSchema,
+  statusParamsSchema
+} from '../schemas/processSchemas.js';
 
 async function processRoutes(fastify, options) {
   // Get reviewer processes
@@ -39,7 +52,8 @@ async function processRoutes(fastify, options) {
       description: 'Crear nuevo proceso',
       tags: ['Processes'],
       summary: 'Crear proceso - Requiere rol: Administrador',
-      security: [{ Bearer: [] }]
+      security: [{ Bearer: [] }],
+      body: createProcessSchema
     },
     handler: createProcess
   });
@@ -51,7 +65,15 @@ async function processRoutes(fastify, options) {
       description: 'Asignar revisor a proceso',
       tags: ['Processes'],
       summary: 'Asignar revisor - Requiere rol: Administrador',
-      security: [{ Bearer: [] }]
+      security: [{ Bearer: [] }],
+      params: {
+        type: 'object',
+        properties: {
+          processId: { type: 'string', pattern: '^[0-9a-fA-F]{24}$' }
+        },
+        required: ['processId']
+      },
+      body: assignReviewerSchema
     },
     handler: assignReviewer
   });
@@ -66,6 +88,85 @@ async function processRoutes(fastify, options) {
       security: [{ Bearer: [] }]
     },
     handler: getAvailableReviewers
+  });
+
+  // CRUD ENDPOINTS
+
+  // Get all processes (role-based access)
+  fastify.get('/', {
+    preHandler: verifyToken,
+    schema: {
+      description: 'Obtener todos los procesos según el rol del usuario',
+      tags: ['Processes'],
+      summary: 'Obtener procesos - Admin/Supervisor: todos, Revisor: asignados',
+      security: [{ Bearer: [] }]
+    },
+    handler: getAllProcesses
+  });
+
+  // Get single process by ID
+  fastify.get('/:id', {
+    preHandler: verifyToken,
+    schema: {
+      description: 'Obtener proceso específico por ID',
+      tags: ['Processes'],
+      summary: 'Obtener proceso por ID - Permisos según rol',
+      security: [{ Bearer: [] }],
+      params: processParamsSchema
+    },
+    handler: getProcessById
+  });
+
+  // Update process
+  fastify.put('/:id', {
+    preHandler: verifyToken,
+    schema: {
+      description: 'Actualizar proceso',
+      tags: ['Processes'],
+      summary: 'Actualizar proceso - Permisos según rol',
+      security: [{ Bearer: [] }],
+      params: processParamsSchema,
+      body: updateProcessSchema
+    },
+    handler: updateProcess
+  });
+
+  // Delete process (admin only)
+  fastify.delete('/:id', {
+    preHandler: verifyToken,
+    schema: {
+      description: 'Eliminar proceso',
+      tags: ['Processes'],
+      summary: 'Eliminar proceso - Requiere rol: Administrador',
+      security: [{ Bearer: [] }],
+      params: processParamsSchema
+    },
+    handler: deleteProcess
+  });
+
+  // Get processes by status
+  fastify.get('/status/:status', {
+    preHandler: verifyToken,
+    schema: {
+      description: 'Obtener procesos por estado',
+      tags: ['Processes'],
+      summary: 'Obtener procesos por estado - Permisos según rol',
+      security: [{ Bearer: [] }],
+      params: statusParamsSchema
+    },
+    handler: getProcessesByStatus
+  });
+
+  // Get process statistics (admin/supervisor only)
+  fastify.get('/stats/overview', {
+    preHandler: verifyToken,
+    schema: {
+      description: 'Obtener estadísticas de procesos',
+      tags: ['Processes'],
+      summary: 'Obtener estadísticas - Requiere rol: Administrador o Supervisor',
+      security: [{ Bearer: [] }]
+    },
+    handler: getProcessStatistics
   });
 }
 
